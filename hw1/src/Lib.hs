@@ -15,11 +15,9 @@ import           Text.Read      (readMaybe)
 order3 :: Ord a => (a, a, a) -> (a, a, a)
 order3 (x, y, z) = let [a, b, c] = sort [x, y, z] in (a, b, c)
 
--- Return -1 if x <= 0
 highestBit :: Integer -> Maybe Integer
 highestBit x = fst <$> highestBitAdv x
 
--- Return (-1, 0) if x <= 0
 highestBitAdv :: Integer -> Maybe (Integer, Integer)
 highestBitAdv x
     | x <= 0    = Nothing
@@ -107,7 +105,7 @@ data Fighter = Knight {attack :: Integer, hp :: Integer}
              | Monster {attack :: Integer, hp :: Integer} deriving (Eq, Ord, Show)
 
 fight :: Fighter -> Fighter -> (Fighter, Integer)
-fight a b = if even c then (b, c) else (a, c)
+fight a b = if odd c then (a, c) else (b, c)
   where
     c = rounds (min a b) (max a b)
     rounds :: Fighter -> Fighter -> Integer
@@ -202,11 +200,21 @@ modNat x y = snd <$> divModNat x y
 
 gcdNat :: Nat -> Nat -> Nat
 gcdNat x y
+    | x == Z    = y
+    | y == Z    = x
     | x < y     = gcdNat y x
-    | x == y    = x
-    | otherwise = gcdNat (x - y) y
+    | otherwise = let Just z = modNat x y in gcdNat y z
 
 data Tree a = Ord a => Leaf | Ord a => Node a (Tree a) (Tree a)
+
+instance Show a => Show (Tree a) where
+  show Leaf         = "Leaf"
+  show (Node x l r) = "(" ++ show l ++ ") " ++ "Node " ++ show x ++ " (" ++ show r ++ ")"
+
+instance Eq a => Eq (Tree a) where
+  Leaf == Leaf                     = True
+  (Node x l1 r1) == (Node y l2 r2) = x == y && l1 == l2 && r1 == r2
+  _ == _                           = False
 
 add :: a -> Tree a -> Tree a
 add a Leaf = Node a Leaf Leaf
@@ -225,7 +233,7 @@ instance Foldable Tree where
   foldMap f (Node x l r) = foldMap f l `mappend` f x `mappend` foldMap f r
 
   foldr _ x Leaf         = x
-  foldr f z (Node x l r) = foldr f (f x $ foldr f z l) r
+  foldr f z (Node x l r) = foldr f (f x $ foldr f z r) l
 
   null Leaf = True
   null _    = False
@@ -243,7 +251,7 @@ splitOn :: Eq a => a -> [a] -> [[a]]
 splitOn sep = foldr f [[]] where
   f _ [] = undefined -- SuppressWarning
   f a bs@(b : bs')
-      | a == sep    = [] : bs
+      | a == sep  = [] : bs
       | otherwise = (a : b) : bs'
 
 joinWith :: a -> [[a]] -> [a]
