@@ -19,8 +19,13 @@ tested-with:         GHC == 8.0.1
 library
   hs-source-dirs:      src
   exposed-modules:     Lib
+  other-modules:       Monad1
+                     , Monad2
+                     , Instances
   ghc-options:         -Wall
   build-depends:       base >= 4.9 && < 5
+                     , mtl
+                     , hspec
   default-language:    Haskell2010
 
 executable hw2
@@ -29,4 +34,14 @@ executable hw2
   ghc-options:         -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , hw2
+  default-language:    Haskell2010
+
+test-suite hw2-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       base
+                     , hw2
+                     , hspec
+  ghc-options:         -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010

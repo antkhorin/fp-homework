@@ -39,6 +39,7 @@ packages:
 - hw1
 - hw2
 - hw3
+- bonus
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 extra-deps: []
@@ -66,3 +67,8 @@ extra-package-dbs: []
 #
 # Allow a newer minor version of GHC than the snapshot specifies
 # compiler-check: newer-minor
+ghc-options:
+    hw1: -Werror
+    hw2: -Werror
+    hw3: -Werror
+    bonus: -Werror
