@@ -34,7 +34,6 @@ instance C a => C (Bool -> a) where
     f (s ++ "False ") (g False)
 
 
-
 test1 :: Integer
 test1 = sum $ MkT [Just 3, Nothing, Just 1, Just 10]
 --14

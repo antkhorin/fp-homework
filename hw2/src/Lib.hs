@@ -29,7 +29,7 @@ module Lib (
 
 import           Control.Applicative (Alternative, empty, (<|>))
 import qualified Control.Category    as Cat (Category, id, (.))
-import           Control.Monad       (void, (<=<), (>=>))
+import           Control.Monad       (liftM2, void, (<=<), (>=>))
 import           Data.Char           (isAlpha, isAlphaNum, isDigit, isSpace, isUpper)
 import           Data.List           (delete, find)
 import           Data.Maybe          (fromMaybe, isJust)
@@ -50,21 +50,22 @@ data ArithmeticError = DivideByZeroError
 
 eval :: Expr -> Either ArithmeticError Integer
 eval (Const x) = pure x
-eval (x :+ y) = (+) <$> eval x <*> eval y
-eval (x :- y) = (-) <$> eval x <*> eval y
-eval (x :* y) = (*) <$> eval x <*> eval y
-eval (x :/ y) = div <$> eval x <*> y'
+eval (x :+ y) = liftM2 (+) (eval x) (eval y)
+eval (x :- y) = liftM2 (-) (eval x) (eval y)
+eval (x :* y) = liftM2 (*) (eval x) (eval y)
+eval (x :/ y) = liftM2 (flip div) y' (eval x)
   where
     y' :: Either ArithmeticError Integer
     y' = case eval y of
              Right 0 -> Left DivideByZeroError
              a       -> a
-eval (x :^ y) = (^) <$> eval x <*> y'
+eval (x :^ y) = liftM2 (flip (^)) y' (eval x)
   where
     y' :: Either ArithmeticError Integer
     y' = case eval y of
-             Right a | a < 0 -> Left NegativeExponentError
-             a       -> a
+             Right a
+                 | a < 0 -> Left NegativeExponentError
+             a           -> a
 
 data a ~> b = Partial   (a -> Maybe b) -- a partial function
             | Defaulted (a ~> b) b     -- a partial function with a default value
@@ -97,29 +98,6 @@ orElse f g = Partial $ \x -> case apply f x of
 instance Cat.Category (~>) where
     id = Partial Just
     f . g = Partial $ apply f <=< apply g
-
-    {-# LAWS
-        1.  id . f =
-            Parial $ apply id <=< apply f =
-            Partial $ apply (Partial Just) <=< apply f =
-            Partial $ Just <=< apply f =
-            Partial $ apply f =
-            f
-        2.  f . id =
-            Parial $ apply f <=< apply id =
-            Partial $ apply f <=< apply (Partial Just) =
-            Partial $ apply f <=< Just =
-            Partial $ apply f =
-            f
-        3.  (f . g) . h =
-            Partial $ apply (f . g) <=< apply h =
-            Partial $ apply (Partial $ apply f <=< apply g) <=< apply h =
-            Partial $ (apply f <=< apply g) <=< apply h
-            f . (g . h) =
-            Partial $ apply f <=< apply (g . h) =
-            Partial $ apply f <=< apply (Partial $ apply g <=< apply h) =
-            Partial $ apply f <=< (apply g <=< apply h)
-    #-}
 --Block 2
 
 bin :: Int -> [[Int]]
@@ -146,13 +124,6 @@ newtype Monstupar s a = Monstupar { runParser :: [s] -> Either ParseError ([s], 
 
 instance Functor (Monstupar s) where
     fmap f p = Monstupar $ \s -> fmap (fmap f) (runParser p s)
-
-    {-# LAWS
-        1.  fmap id (Monstupar p) =
-            Monstupar $ \s -> fmap (fmap id) (runParser p s) =
-            Monstupar $ \s -> runParser p s =
-            Monstupar p
-    #-}
 
 instance Applicative (Monstupar s) where
     pure a = Monstupar $ \s -> Right (s, a)
@@ -191,7 +162,7 @@ abParser :: Monstupar Char (Char, Char)
 abParser = (,) <$> char 'a' <*> char 'b'
 
 abParser_ :: Monstupar Char ()
-abParser_ = (\_ _ -> ()) <$> char 'a' <*> char 'b'
+abParser_ = void abParser
 
 intPair :: Monstupar Char [Integer]
 intPair = (\a b -> [a, b]) <$> posInt <* char ' ' <*> posInt
